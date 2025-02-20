@@ -1,0 +1,6 @@
+[package]
+name = "simple_encryption_turn_the_bits_around"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]

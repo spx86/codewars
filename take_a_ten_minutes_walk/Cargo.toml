@@ -1,0 +1,6 @@
+[package]
+name = "take_a_ten_minutes_walk"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
