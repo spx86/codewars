@@ -1,4 +1,5 @@
-#![feature(iter_map_windows)]
+use base64::{engine::general_purpose::STANDARD, Engine}; // 确保在字符集范围内
+
 fn swap_c1_5_to_c2_1(c1: u8, c2: u8) -> (u8, u8) {
     let bit_c1 = c1 >> 4 & 1; //提取第五位
     let bit_c2 = c2 >> 7 & 1; //提取第一位
@@ -9,7 +10,7 @@ fn swap_c1_5_to_c2_1(c1: u8, c2: u8) -> (u8, u8) {
     (byte_c1, byte_c2)
 }
 
-fn inverse_c_2_and_4(c: u8) -> u8 {
+fn inverse_2_and_4_bits(c: u8) -> u8 {
     let c = c ^ 1 << 6;
     let c = c ^ 1 << 3;
     c
@@ -50,18 +51,69 @@ fn swap_1_3_bits(c: u8) -> u8 {
     let c = c & !(1 << 5) | bit_1 << 5;
     c
 }
-fn main() {
-    let (x, y) = swap_c1_5_to_c2_1('H' as u8, 'e' as u8);
-    println!("H:{:08b}, swap:{:08b}", 'H' as u8,  x);
-    println!("e:{:08b}, swap:{:08b}", 'e' as u8,  y);
 
-    let s = "Hello, world".to_string();
-    println!("{:?}", s.as_bytes());
-    let s = s.bytes().map_windows(|[x, y]| {
-        let (c1, c2) = swap_c1_5_to_c2_1(*x, *y);
-        (c1, c2)
+fn encrypt(text: &str) -> String {
+    if text.is_empty() {
+        return text.to_string();
     }
-    ).collect::<Vec<_>>();
-    //println!("{:?}", String::from_utf8_lossy(&s).to_string());
-    println!("{:?}", s);
+
+    let mut bytes: Vec<u8> = STANDARD.encode(text.as_bytes()).chars().map(|c| c as u8).collect();
+
+    // 第一步：C1.5 <=> C2.1
+    for i in 0..bytes.len() - 1 {
+        let (new_c1, new_c2) = swap_c1_5_to_c2_1(bytes[i], bytes[i + 1]);
+        bytes[i] = new_c1;
+        bytes[i + 1] = new_c2;
+    }
+
+    // 逐个字符执行变换
+    for i in 0..bytes.len() {
+        bytes[i] = inverse_2_and_4_bits(bytes[i]);
+        bytes[i] = swap_first_last_3_bits(bytes[i]);
+        bytes[i] = swap_odd_even_bits(bytes[i]);
+        bytes[i] = reverse_bits(bytes[i]);
+        bytes[i] = swap_1_3_bits(bytes[i]);
+    }
+
+    STANDARD.encode(&bytes)
 }
+
+/// **解密**
+fn decrypt(encrypted_text: &str) -> String {
+    if encrypted_text.is_empty() {
+        return encrypted_text.to_string();
+    }
+
+    let mut bytes: Vec<u8> = STANDARD.decode(encrypted_text.as_bytes()).unwrap();
+
+    // 逆向执行变换（与加密顺序相反）
+    for i in 0..bytes.len() {
+        bytes[i] = swap_1_3_bits(bytes[i]);
+        bytes[i] = reverse_bits(bytes[i]);
+        bytes[i] = swap_odd_even_bits(bytes[i]);
+        bytes[i] = swap_first_last_3_bits(bytes[i]);
+        bytes[i] = inverse_2_and_4_bits(bytes[i]);
+    }
+
+    // 逆向执行 C1.5 <=> C2.1
+    for i in (0..bytes.len() - 1).rev() {
+        let (new_c1, new_c2) = swap_c1_5_to_c2_1(bytes[i], bytes[i + 1]);
+        bytes[i] = new_c1;
+        bytes[i + 1] = new_c2;
+    }
+
+    let bytes = String::from_utf8_lossy(&bytes).to_string();
+    String::from_utf8(STANDARD.decode(bytes).unwrap()).unwrap()
+}
+
+fn main() {
+    let text = "afalsgmkaioe23pokd pasodkg  gopasdg kk sdgkospa]kgaspd,vpoaksd g spadk f]ask f";
+    println!("原文: {}", text); 
+    let encrypted = encrypt(text);
+    println!("加密: {}", encrypted);
+    let decrypted = decrypt(&encrypted);
+    println!("解密: {}", decrypted);
+
+    assert_eq!(text, decrypted);
+}
+
