@@ -1,2 +1,2 @@
 [workspace]
-members = ["duplicate_encoder", "simple_encryption_turn_the_bits_around", "sum_mixed_array", "take_a_ten_minutes_walk"]
+members = [ "alphabetic_anagrams","duplicate_encoder", "simple_encryption_turn_the_bits_around", "sum_mixed_array", "take_a_ten_minutes_walk"]

@@ -113,7 +113,8 @@ fn main() {
     println!("加密: {}", encrypted);
     let decrypted = decrypt(&encrypted);
     println!("解密: {}", decrypted);
-
+    "sdfad".chars().
     assert_eq!(text, decrypted);
 }
+
 
